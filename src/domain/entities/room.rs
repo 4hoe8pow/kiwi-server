@@ -1,27 +1,28 @@
-use crate::{domain::value_objects::room_code::RoomCode, Player};
+use crate::domain::value_objects::room_code::RoomCode;
 use serde::{Deserialize, Serialize};
 
-// 部屋情報
+use super::player::Player;
+
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Room {
-    pub room_code: RoomCode,  // ユーザー向けの識別子
-    pub players: Vec<Player>, // 部屋に所属するプレイヤー
+    pub room_code: RoomCode,
+    pub players: Vec<Player>,
 }
 
 impl Room {
-    // 部屋が満室かどうかをチェック
+    // 満室か
     pub fn is_full(&self) -> bool {
-        self.players.len() >= 3 // 部屋に最大3人のプレイヤー
+        self.players.len() > 1 // 最大2人
     }
 
-    // プレイヤーを部屋に追加
+    // プレイヤーを追加
     pub fn add_player(&mut self, player: Player) {
         if !self.is_full() {
             self.players.push(player);
         }
     }
 
-    // 部屋の状態を取得
+    // 部屋を取得
     pub fn get_players(&self) -> Vec<String> {
         self.players
             .iter()
