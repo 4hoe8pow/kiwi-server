@@ -34,3 +34,94 @@ impl<R: RoomRepository> RoomService<R> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::domain::repositories::room_repository::MockRoomRepository;
+    use crate::domain::value_objects::room_code::RoomCode;
+
+    // テストの準備と実行にtokioランタイムを使用
+    #[tokio::test]
+    async fn test_exists_room_code_found() {
+        let mut mock_repo = MockRoomRepository::new();
+        let room_code = RoomCode::new("Room123".to_string()).unwrap();
+
+        mock_repo
+            .expect_exists()
+            .withf(|code| code == "Room123")
+            .returning(|_| Ok(true));
+
+        let service = RoomService::new(mock_repo);
+        assert!(service.exists(&room_code).await);
+    }
+
+    #[tokio::test]
+    async fn test_exists_room_code_not_found() {
+        let mut mock_repo = MockRoomRepository::new();
+        let room_code = RoomCode::new("Room123".to_string()).unwrap();
+
+        mock_repo
+            .expect_exists()
+            .withf(|code| code == "Room123")
+            .returning(|_| Ok(false));
+
+        let service = RoomService::new(mock_repo);
+        assert!(!service.exists(&room_code).await);
+    }
+
+    #[tokio::test]
+    async fn test_create_room_success() {
+        let mut mock_repo = MockRoomRepository::new();
+        let room_code = RoomCode::new("Room123".to_string()).unwrap();
+
+        mock_repo
+            .expect_exists()
+            .withf(|code| code == "Room123")
+            .returning(|_| Ok(false));
+
+        mock_repo.expect_save().returning(|_| Ok(()));
+
+        let service = RoomService::new(mock_repo);
+        let result = service.create_room(&room_code).await;
+
+        assert!(result.is_some());
+        assert_eq!(result.unwrap().room_code.value(), "Room123");
+    }
+
+    #[tokio::test]
+    async fn test_create_room_already_exists() {
+        let mut mock_repo = MockRoomRepository::new();
+        let room_code = RoomCode::new("Room123".to_string()).unwrap();
+
+        mock_repo
+            .expect_exists()
+            .withf(|code| code == "Room123")
+            .returning(|_| Ok(true));
+
+        let service = RoomService::new(mock_repo);
+        let result = service.create_room(&room_code).await;
+
+        assert!(result.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_create_room_save_error() {
+        let mut mock_repo = MockRoomRepository::new();
+        let room_code = RoomCode::new("Room123".to_string()).unwrap();
+
+        mock_repo
+            .expect_exists()
+            .withf(|code| code == "Room123")
+            .returning(|_| Ok(false));
+
+        mock_repo
+            .expect_save()
+            .returning(|_| Err("Save error".to_string()));
+
+        let service = RoomService::new(mock_repo);
+        let result = service.create_room(&room_code).await;
+
+        assert!(result.is_none());
+    }
+}
